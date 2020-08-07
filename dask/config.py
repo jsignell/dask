@@ -9,12 +9,11 @@ import warnings
 import yaml
 
 try:
-    from jsonschema import validate
+    from jsonschema import validate, ValidationError
 
     VALIDATE_CONFIG = True
 except ImportError:
     VALIDATE_CONFIG = False
-    pass
 
 no_default = "__no_default__"
 
@@ -50,7 +49,16 @@ def schema_validate(new):
     with open(os.path.join(root, "dask-schema.yaml")) as f:
         schema = yaml.safe_load(f)
 
-    validate(instance=new, schema=schema)
+    # convert all '_' to '-'
+    alt = {k.replace("_", "-"): v for k, v in new.items()}
+
+    try:
+        validate(instance=alt, schema=schema)
+    except ValidationError as err:
+        warnings.warn(
+            f'Configuration for "{".".join(err.path)}" is invalid: {err.message}.',
+            stacklevel=3,
+        )
 
 
 def canonical_name(k, config):
@@ -76,7 +84,7 @@ def canonical_name(k, config):
     return k
 
 
-def update(old, new, priority="new", validate=VALIDATE_CONFIG):
+def update(old, new, priority="new"):
     """ Update a nested dictionary with values from another
 
     This is like dict.update except that it smoothly merges nested values
@@ -105,6 +113,7 @@ def update(old, new, priority="new", validate=VALIDATE_CONFIG):
     --------
     dask.config.merge
     """
+    schema_validate(new)
     for k, v in new.items():
         k = canonical_name(k, old)
 
@@ -115,9 +124,6 @@ def update(old, new, priority="new", validate=VALIDATE_CONFIG):
         else:
             if priority == "new" or k not in old:
                 old[k] = v
-    if validate:
-        schema_validate(old)
-
     return old
 
 
@@ -140,8 +146,6 @@ def merge(*dicts, validate=VALIDATE_CONFIG):
     result = {}
     for d in dicts:
         update(result, d)
-    if validate:
-        schema_validate(result)
     return result
 
 
@@ -347,7 +351,7 @@ class set(object):
                 else:
                     d.pop(path[-1], None)
 
-    def _assign(self, keys, value, d, path=(), record=True, validate=VALIDATE_CONFIG):
+    def _assign(self, keys, value, d, path=(), record=True):
         """Assign value into a nested configuration dictionary
 
         Parameters
@@ -367,6 +371,8 @@ class set(object):
 
         path = path + (key,)
 
+        schema_validate({key: value})
+
         if len(keys) == 1:
             if record:
                 if key in d:
@@ -382,9 +388,6 @@ class set(object):
                 # No need to record subsequent operations after an insert
                 record = False
             self._assign(keys[1:], value, d[key], path, record=record)
-
-        if validate:
-            schema_validate(self.config)
 
 
 def collect(paths=paths, env=None):
