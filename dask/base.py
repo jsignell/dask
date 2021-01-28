@@ -29,6 +29,7 @@ __all__ = (
     "visualize",
     "tokenize",
     "normalize_token",
+    "fake"
 )
 
 
