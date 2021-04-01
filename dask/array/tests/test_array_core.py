@@ -3166,7 +3166,7 @@ def test_to_delayed():
     y = x + 10
 
     [[a, b], [c, d]] = y.to_delayed()
-    assert_eq(a.compute(), y[:2, :2])
+    assert_eq(a, y[:2, :2])
 
     s = 2
     x = da.from_array(np.array(s), chunks=0)
