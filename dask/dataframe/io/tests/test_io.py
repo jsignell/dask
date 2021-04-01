@@ -640,13 +640,13 @@ def test_to_delayed():
     a, b = ddf.to_delayed()
     assert isinstance(a, Delayed)
     assert isinstance(b, Delayed)
-    assert_eq(a.compute(), df.iloc[:2])
+    assert_eq(a, df.iloc[:2])
 
     # Scalar
     x = ddf.x.sum()
     dx = x.to_delayed()
     assert isinstance(dx, Delayed)
-    assert_eq(dx.compute(), x)
+    assert_eq(dx, x)
 
 
 def test_to_delayed_optimize_graph():
