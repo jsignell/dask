@@ -3185,6 +3185,8 @@ Dask Name: {name}, {task} tasks""".format(
             ``Series.name`` attribute.
         inplace : boolean, default False
             Whether to return a new Series or modify this one inplace.
+            ``inplace=True`` has been deprecated. Only ``inplace=False`` will
+            be allowed in a future release.
         sorted_index : bool, default False
             If true, the output ``Series`` will have known divisions inferred
             from the input series and the transformation. Ignored for
@@ -3207,6 +3209,12 @@ Dask Name: {name}, {task} tasks""".format(
 
         import dask.dataframe as dd
 
+        if inplace:
+            warnings.warn(
+                "The inplace= keyword to rename has been deprecated. Only "
+                "inplace=False will be allowed in a future release.",
+                FutureWarning,
+            )
         if is_scalar(index) or (
             is_list_like(index)
             and not is_dict_like(index)
@@ -4387,10 +4395,8 @@ class DataFrame(_Frame):
         return self.map_partitions(M.query, expr, **kwargs)
 
     @derived_from(pd.DataFrame)
-    def eval(self, expr, inplace=None, **kwargs):
-        if inplace is None:
-            inplace = False
-        if "=" in expr and inplace in (True, None):
+    def eval(self, expr, inplace=False, **kwargs):
+        if inplace:
             raise NotImplementedError(
                 "Inplace eval not supported. Please use inplace=False"
             )
